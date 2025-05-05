@@ -1,0 +1,30 @@
+{
+  "name": "api",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "tsc": "tsc",
+    "start": "set debug=* && ts-node-dev --respawn --transpile-only --watch src ./src/server.ts",
+    "prod": "tsc && node ./build/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@types/express": "^5.0.1",
+    "@types/node": "^22.15.3",
+    "@types/redis": "^4.0.10",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "axios": "^1.9.0",
+    "body-parser": "^2.2.0",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "mongoose": "^8.14.1",
+    "redis": "^5.0.1"
+  }
+}
