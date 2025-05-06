@@ -1,42 +1,66 @@
 import { Request, Response } from "express";
-import axios from "axios";
 import Movie from "../models/Movie";
 import { redisClient } from "../config/redis";
-import { OMDB_API_KEY, OMDB_URL } from "../constants";
+import logger from "../utils/logger";
 
-const getData = async (req: Request, res: Response): Promise<Response | undefined> => {
+const getData = async (
+  req: Request,
+  res: Response,
+): Promise<Response | undefined> => {
   const { q } = req.query;
   const query = q?.toString().toLowerCase();
 
-  if (!query) {
-    return res
-      .status(400)
-      .json({ message: 'Query parameter "q" is required.' });
+  // If a query string is provided, do a search
+  if (query) {
+    try {
+      const cachedMovies = await redisClient.get(query);
+
+      if (cachedMovies) {
+        return res.json(JSON.parse(cachedMovies));
+      }
+
+      const mongoMovies = await Movie.find({
+        $or: [
+          { title: new RegExp(query, "i") },
+          { director: new RegExp(query, "i") },
+          { plot: new RegExp(query, "i") },
+        ],
+      }).limit(10);
+
+      await redisClient.set(query, JSON.stringify(mongoMovies));
+      await redisClient.expire(query, 3600);
+
+      return res.json(mongoMovies);
+    } catch (error) {
+      logger.error(error);
+      return res.status(500).json({
+        message: "Failed to get data using search query",
+        error: (error as Error).message,
+      });
+    }
   }
 
-  try {
-    // First, try to get the data from Redis cache
-    const cachedMovies = await redisClient.get(query);
+  // No query provided, return all movies
+  const cacheKey = "__all_movies__";
 
-    if (cachedMovies) {
-      return res.json(JSON.parse(cachedMovies));
+  try {
+    const cachedAll = await redisClient.get(cacheKey);
+
+    if (cachedAll) {
+      return res.json(JSON.parse(cachedAll));
     }
 
-    // If no cache, query MongoDB for movies
-    const mongoMovies = await Movie.find({
-      title: new RegExp(query, "i"),
-    }).limit(10);
+    const allMovies = await Movie.find().limit(50);
+    await redisClient.set(cacheKey, JSON.stringify(allMovies));
+    await redisClient.expire(cacheKey, 3600);
 
-    // Cache the results in Redis for future use
-    await redisClient.set(query, JSON.stringify(mongoMovies)); // Cache the results
-    await redisClient.expire(query, 3600); // Set expiration to 1 hour
-
-    return res.json(mongoMovies);
+    return res.json(allMovies);
   } catch (error) {
-    console.error(error);
-    res
-      .status(500)
-      .json({ message: "Failed to get data", error: (error as Error).message });
+    logger.error(error);
+    return res.status(500).json({
+      message: "Failed to get all data",
+      error: (error as Error).message,
+    });
   }
 };
 

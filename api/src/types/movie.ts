@@ -4,4 +4,7 @@ export interface Movie {
   year: string;
   type: string;
   poster: string;
+  writer: string;
+  director: string;
+  plot: string;
 }

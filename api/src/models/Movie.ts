@@ -6,6 +6,9 @@ const MovieSchema = new mongoose.Schema({
   year: String,
   type: String,
   poster: String,
+  director: String,
+  writer: String,
+  plot: String,
 });
 
 export default mongoose.model("Movie", MovieSchema);
