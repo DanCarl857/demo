@@ -10,5 +10,9 @@ export function homeQueries(fetcher: Fetcher) {
       queryKey: ["getMovies", query],
       queryFn: () => api.getMovies(query),
     }),
+    syncMovies: () => ({
+      queryKey: ["syncMovies"],
+      queryFn: () => api.syncMovies(),
+    }),
   });
 }

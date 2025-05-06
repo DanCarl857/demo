@@ -24,5 +24,10 @@ export function homeEndpoints(fetcher: Fetcher) {
         endpoint: `/movies/search?q=${query}`,
         response: responseBody(MovieResponse),
       }),
+    syncMovies: () =>
+      fetcher({
+        endpoint: `/movies/sync`,
+        response: responseBody(z.unknown()),
+      }),
   };
 }

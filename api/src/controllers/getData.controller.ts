@@ -14,6 +14,7 @@ const getData = async (req: Request, res: Response): Promise<void> => {
 
       if (cachedMovies) {
         res.status(200).json(JSON.parse(cachedMovies));
+        return;
       }
 
       const mongoMovies = await Movie.find({

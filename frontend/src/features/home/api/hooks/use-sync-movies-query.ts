@@ -2,12 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 
 import { useGetMovieQueries } from "./use-home-queries";
 
-export function useGetMovieQuery(query: string) {
-  const { getMovies } = useGetMovieQueries();
+export function useSyncMovieQuery() {
+  const { syncMovies } = useGetMovieQueries();
 
-  console.log("calling here...");
   return useQuery({
-    ...getMovies(query),
+    ...syncMovies(),
     refetchOnWindowFocus: false,
   });
 }

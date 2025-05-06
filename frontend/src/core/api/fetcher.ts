@@ -2,7 +2,6 @@ import axios, { AxiosRequestConfig, Method } from "axios";
 import snakecaseKeys from "snakecase-keys";
 import { Schema, z } from "zod";
 
-import { getEnvironment } from "@/core/environment";
 import { camelCase } from "@/core/utils/transformers";
 
 interface Options<T extends Schema> {
@@ -24,13 +23,7 @@ interface FetcherOptions {
 
 const MAX_RETRY_COUNT = 3;
 
-export function createFetcher({ apiToken }: FetcherOptions = {}): Fetcher {
-  // const baseHeaders = createHeaders({ apiToken });
-  const { baseURL } = getEnvironment(z.object({ baseURL: z.string().url() }), {
-    baseURL:
-      process.env["NEXT_PUBLIC_API_BASE_URL"] || "http:localhost:3000/api/v1",
-  });
-
+export function createFetcher({}: FetcherOptions = {}): Fetcher {
   return async function fetchWithRetry<T extends Schema>(
     {
       method = "get",
@@ -42,10 +35,6 @@ export function createFetcher({ apiToken }: FetcherOptions = {}): Fetcher {
     retryCount = 0,
   ): Promise<z.infer<T>> {
     try {
-      // const headers: Record<string, string> = { ...baseHeaders };
-      //
-      // configureHeaders?.(headers);
-
       const endpointURL = `http://localhost:3000/api/v1${endpoint}`;
       const axiosConfig: AxiosRequestConfig = { method, ...config };
 
@@ -75,21 +64,3 @@ export function requestBody(body: Record<string, unknown> | unknown[]) {
 export function responseBody<T extends Schema>(schema: T) {
   return z.preprocess(camelCase, schema);
 }
-
-// function createHeaders({ apiToken }: Pick<FetcherOptions, "apiToken">) {
-//   const headers: Record<string, string> = {};
-//
-//   headers["Accept"] = "application/json";
-//   headers["Content-Type"] = "application/json";
-//
-//   if (apiToken) {
-//     headers["Authorization"] = createAuthorizationHeader(apiToken);
-//   }
-//
-//   return headers;
-// }
-
-// function createAuthorizationHeader(apiToken: string) {
-//   const authHeaderPrefix = "Token";
-//   return `${authHeaderPrefix} ${apiToken}`;
-// }
