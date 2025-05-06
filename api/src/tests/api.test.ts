@@ -72,7 +72,7 @@ describe("GET /api/movies/search", () => {
   });
 });
 
-describe("POST /api/v1/movies/sync", () => {
+describe("GET /api/v1/movies/sync", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -80,7 +80,7 @@ describe("POST /api/v1/movies/sync", () => {
   it("should trigger data sync and return success message", async () => {
     (fetchAndSyncMovies as jest.Mock).mockResolvedValueOnce(5);
 
-    const response = await request(app).post("/api/v1/movies/sync");
+    const response = await request(app).get("/api/v1/movies/sync");
 
     // expect(response.status).toBe(200);
     expect(response.body.message).toBe(
@@ -94,7 +94,7 @@ describe("POST /api/v1/movies/sync", () => {
       new Error("OMDb API error"),
     );
 
-    const response = await request(app).post("/api/v1/movies/sync");
+    const response = await request(app).get("/api/v1/movies/sync");
 
     expect(response.status).toBe(500);
     expect(response.body.message).toBe("Failed to sync data");

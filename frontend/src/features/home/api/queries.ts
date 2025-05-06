@@ -7,7 +7,7 @@ export function homeQueries(fetcher: Fetcher) {
 
   return createQueryKeys("home", {
     getMovies: (query: string) => ({
-      queryKey: ["getMovies"],
+      queryKey: ["getMovies", query],
       queryFn: () => api.getMovies(query),
     }),
   });

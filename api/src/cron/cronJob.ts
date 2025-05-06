@@ -18,3 +18,9 @@ cron.schedule(CRON_SCHEDULE, async () => {
     logger.error(`[CRON]: Sync failed - ${(error as Error).message}`);
   }
 });
+
+// Run once on startup
+(async () => {
+  logger.info("[INIT]: Running cron job on startup...");
+  await fetchAndSyncMovies();
+})();

@@ -45,6 +45,7 @@ const getData = async (req: Request, res: Response): Promise<void> => {
 
     if (cachedAll) {
       res.status(200).json(JSON.parse(cachedAll));
+      return;
     }
 
     const allMovies = await Movie.find().limit(50);
@@ -53,7 +54,7 @@ const getData = async (req: Request, res: Response): Promise<void> => {
 
     res.status(200).json(allMovies);
   } catch (error) {
-    logger.error(error);
+    logger.error("Failing to get data:", error);
     res.status(500).json({
       message: "Failed to get all data",
       error: (error as Error).message,
