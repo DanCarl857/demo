@@ -3,6 +3,7 @@ import { connectDB } from "./config/db";
 import { redisClient } from "./config/redis";
 import dotenv from "dotenv";
 import logger from "./utils/logger";
+import "./cron/cronJob";
 dotenv.config();
 
 (async () => {
