@@ -60,3 +60,8 @@ docker-compose up --build
 ```
 
 After this, app should be available in the browser at: `http://localhost:5173`
+
+## System Design
+
+![system design](https://github.com/user-attachments/assets/cf7e117f-a038-46f2-9cde-04262951a0ae)
+
