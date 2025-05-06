@@ -14,7 +14,7 @@ describe("fetchAndSyncMovies", () => {
     jest.clearAllMocks();
   });
 
-  it("should fetch movies from OMDb and sync them to the database and Redis", async () => {
+  it("should fetch movies from OMDb, sync them to the database, and update Redis", async () => {
     const mockMovies = [
       {
         imdbID: "tt1234567",
@@ -22,18 +22,29 @@ describe("fetchAndSyncMovies", () => {
         Year: "2020",
         Type: "movie",
         Poster: "http://example.com/poster.jpg",
-        Director: "John Doe",
-        Writer: "Jane Doe",
-        Plot: "A thrilling space adventure.",
       },
     ];
 
-    (axios.get as jest.Mock).mockResolvedValueOnce({
-      data: { Search: mockMovies },
-    });
+    const fullMovieData = {
+      imdbID: "tt1234567",
+      Title: "Space Adventure",
+      Year: "2020",
+      Type: "movie",
+      Poster: "http://example.com/poster.jpg",
+      Director: "John Doe",
+      Writer: "Jane Doe",
+      Plot: "A thrilling space adventure.",
+    };
 
-    (Movie.findOne as jest.Mock).mockResolvedValueOnce(null);
+    // Mock OMDb API calls
+    (axios.get as jest.Mock)
+      .mockResolvedValueOnce({ data: { Search: mockMovies } }) // First call for basic movie list
+      .mockResolvedValueOnce({ data: fullMovieData }); // Second call for full movie details
+
+    // Mock database and Redis operations
+    (Movie.findOne as jest.Mock).mockResolvedValueOnce(null); // Ensure updateOne is triggered
     (Movie.updateOne as jest.Mock).mockResolvedValueOnce({});
+    (Movie.prototype.save as jest.Mock).mockResolvedValueOnce({});
     (redisClient.set as jest.Mock).mockResolvedValueOnce("OK");
     (redisClient.expire as jest.Mock).mockResolvedValueOnce(true);
     (redisClient.flushAll as jest.Mock).mockResolvedValueOnce("OK");
@@ -43,29 +54,51 @@ describe("fetchAndSyncMovies", () => {
     expect(axios.get).toHaveBeenCalledWith(expect.any(String), {
       params: { s: "space", y: "2020", apikey: expect.any(String) },
     });
+    expect(axios.get).toHaveBeenCalledWith(expect.any(String), {
+      params: { i: "tt1234567", apikey: expect.any(String) },
+    });
     expect(Movie.findOne).toHaveBeenCalledWith({ imdbID: "tt1234567" });
-    expect(Movie.updateOne).toHaveBeenCalledWith(
-      { imdbID: "tt1234567" },
-      {
-        $set: {
-          title: "Space Adventure",
-          year: "2020",
-          type: "movie",
-          poster: "http://example.com/poster.jpg",
-          director: "John Doe",
-          writer: "Jane Doe",
-          plot: "A thrilling space adventure.",
-        },
-      },
-      { upsert: true },
-    );
+    expect(Movie.prototype.save).toHaveBeenCalled();
     expect(redisClient.set).toHaveBeenCalledWith(
       "tt1234567",
-      JSON.stringify(mockMovies[0]),
+      JSON.stringify({
+        imdbID: "tt1234567",
+        title: "Space Adventure",
+        year: "2020",
+        type: "movie",
+        poster: "http://example.com/poster.jpg",
+        director: "John Doe",
+        writer: "Jane Doe",
+        plot: "A thrilling space adventure.",
+      }),
     );
-    expect(redisClient.expire).toHaveBeenCalledWith("tt1234567", 3600);
+    expect(redisClient.expire).toHaveBeenCalledWith("tt1234567", 14400);
     expect(redisClient.flushAll).toHaveBeenCalled();
     expect(result).toBe(1);
+  });
+
+  it("should skip syncing if full movie data is not returned", async () => {
+    const mockMovies = [
+      {
+        imdbID: "tt1234567",
+        Title: "Space Adventure",
+        Year: "2020",
+        Type: "movie",
+        Poster: "http://example.com/poster.jpg",
+      },
+    ];
+
+    (axios.get as jest.Mock)
+      .mockResolvedValueOnce({ data: { Search: mockMovies } }) // First call for basic movie list
+      .mockResolvedValueOnce({ data: null }); // Second call returns no full movie data
+
+    const result = await fetchAndSyncMovies();
+
+    expect(axios.get).toHaveBeenCalledTimes(2);
+    expect(Movie.updateOne).not.toHaveBeenCalled();
+    expect(Movie.prototype.save).not.toHaveBeenCalled();
+    expect(redisClient.set).not.toHaveBeenCalled();
+    expect(result).toBe(0);
   });
 
   it("should log an error if OMDb API returns no data", async () => {
@@ -93,4 +126,3 @@ describe("fetchAndSyncMovies", () => {
     );
   });
 });
-

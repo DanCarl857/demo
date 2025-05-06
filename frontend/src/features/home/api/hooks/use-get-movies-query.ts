@@ -5,7 +5,6 @@ import { useGetMovieQueries } from "./use-home-queries";
 export function useGetMovieQuery(query: string) {
   const { getMovies } = useGetMovieQueries();
 
-  console.log("calling here...");
   return useQuery({
     ...getMovies(query),
     refetchOnWindowFocus: false,

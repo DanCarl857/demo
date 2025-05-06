@@ -25,30 +25,58 @@ export const fetchAndSyncMovies = async (): Promise<number> => {
 
     // Iterate over the fetched movies and update the DB and Redis cache
     for (const movie of movies) {
+      // Fetch full movie details for each movie by imdbID
+      const { data: fullMovieData } = await axios.get(OMDB_URL, {
+        params: {
+          i: movie.imdbID,
+          apikey: OMDB_API_KEY,
+        },
+      });
+
+      if (!fullMovieData) {
+        const errorMessage = `[SYNC]: No valid full data returned for movie with imdbID: ${movie.imdbID}`;
+        logger.error(errorMessage);
+        continue;
+      }
+
+      // Check if the movie already exists in the database
       const existingMovie = await Movie.findOne({ imdbID: movie.imdbID });
 
-      if (!existingMovie || existingMovie.title !== movie.Title) {
+      // Prepare movie data for update or creation
+      const movieData = {
+        imdbID: movie.imdbID,
+        title: fullMovieData.Title,
+        year: fullMovieData.Year,
+        type: fullMovieData.Type,
+        poster: fullMovieData.Poster,
+        director: fullMovieData.Director,
+        writer: fullMovieData.Writer,
+        plot: fullMovieData.Plot,
+      };
+
+      if (existingMovie) {
+        // Update the movie if it exists in the database
         await Movie.updateOne(
           { imdbID: movie.imdbID },
           {
-            $set: {
-              title: movie.Title,
-              year: movie.Year,
-              type: movie.Type,
-              poster: movie.Poster,
-              director: movie.Director,
-              writer: movie.Writer,
-              plot: movie.Plot,
-            },
+            $set: movieData,
           },
-          { upsert: true },
         );
 
+        // Update Redis cache with the new data
+        await redisClient.set(movie.imdbID, JSON.stringify(movieData));
+        await redisClient.expire(movie.imdbID, 14400); // 4 hours expiration
         newOrUpdatedCount++;
+      } else {
+        // If the movie doesn't exist, create it and update Redis
+        const newMovie = new Movie(movieData);
 
-        // Update Redis with the latest movie data
-        await redisClient.set(movie.imdbID, JSON.stringify(movie));
-        await redisClient.expire(movie.imdbID, 3600);
+        await newMovie.save();
+
+        // Update Redis with the new movie data
+        await redisClient.set(movie.imdbID, JSON.stringify(movieData));
+        await redisClient.expire(movie.imdbID, 14400); // 4 hours expiration
+        newOrUpdatedCount++;
       }
     }
 
