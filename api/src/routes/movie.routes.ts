@@ -4,7 +4,7 @@ import getData from "../controllers/getData.controller";
 
 const router = Router();
 
-router.post("/sync", syncData);
 router.get("/search", getData);
+router.post("/sync", syncData);
 
 export default router;
